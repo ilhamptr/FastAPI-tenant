@@ -1,0 +1,2 @@
+# ref. https://fastapi.tiangolo.com/tutorial/sql-databases/
+Les modèles SQLAlchemy définissent les colonnes de la table, les relations entre les tables, les contraintes d'intégrité et d'autres métadonnées de la base de données.

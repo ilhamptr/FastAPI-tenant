@@ -1,0 +1,2 @@
+# ref. https://fastapi.tiangolo.com/tutorial/sql-databases/
+Les modèles Pydantic, sont des classes Python qui sont utilisées pour valider et sérialiser les données entrantes et sortantes d'une application. Ils sont souvent utilisés pour définir les schémas des données JSON entrantes et sortantes d'une API RESTful. Les modèles Pydantic peuvent également être utilisés pour valider les données entrantes et sortantes d'autres sources, telles que des fichiers CSV ou des bases de données NoSQL.
