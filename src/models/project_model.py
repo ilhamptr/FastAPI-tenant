@@ -7,6 +7,6 @@ class Project(Base):
     __tablename__ = "project"
 
     id = Column(Integer, primary_key=True)
-    title = Column(String(100), unique=True, index=True)
+    name = Column(String(100), unique=True, index=True)
     key = Column(String(10), unique=True, index=True)
     description = Column(String, index=True)

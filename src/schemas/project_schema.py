@@ -4,6 +4,6 @@ from pydantic import BaseModel
 
 class ProjectSchema(BaseModel):
     id: int
-    title: str
+    name: str
     key: str
     description: str | None = None
