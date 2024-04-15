@@ -50,6 +50,7 @@ project
 
 # Set up DB
 - https://fastapi.tiangolo.com/how-to/async-sql-encode-databases/?h=sqlalchemy#import-and-set-up-sqlalchemy
+- connect to postgres db: http://127.0.0.1/pgadmin4/browser/
 
 # Migration
 - Ref. https://alembic.sqlalchemy.org/en/latest/tutorial.html#the-migration-environment
