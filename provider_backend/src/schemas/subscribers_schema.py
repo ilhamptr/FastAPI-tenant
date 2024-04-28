@@ -2,15 +2,17 @@
 
 from datetime import datetime
 from pydantic import BaseModel, validator
-
-class ProjectSchema(BaseModel):
-    id: int
+    
+class CreateUserRequest(BaseModel):
     first_name: str
     last_name: str
+    password: str
     email: str
     subdomain: str
-    registred_at: datetime
-    is_active: bool
+
+class Token(BaseModel):
+    access_token:str
+    token_type:str
 
     '''
     @validator('icon')
@@ -28,4 +30,3 @@ class ProjectSchema(BaseModel):
             
         return v
     '''
-

@@ -1,9 +1,7 @@
-from datetime import datetime
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
-class AdminsSchema(BaseModel):
-    id: int
-    first_name: str
-    last_name: str
-    email: str
-    is_active: bool
+class Status(BaseModel):
+    username:str
+    
+class Email(BaseModel):
+    email:str

@@ -3,19 +3,20 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from src.config import Settings
+from dotenv import load_dotenv
+import os
+# from .config import Settings
 
-# Import a database URL for SQLAlchemy from the environment variable DATABASE_URL
-settings = Settings()
-SQLALCHEMY_DATABASE_URL = settings.PROVIDER_DATABASE_URL
+load_dotenv()
+
+# Define the database URL directly in the config file
+DATABASE_URL= os.getenv("PROVIDER_DATABASE_URL")
 
 # Create the SQLAlchemy engine
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-#engine = create_engine("postgresql://reqsUser:reqsUserPasswd@localhost:5432/reqsDB")
+engine = create_engine(DATABASE_URL)
 
 # Create a SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create a Base class
 Base = declarative_base()
-

@@ -1,11 +1,16 @@
 from fastapi import FastAPI
-from provider_backend.src.models.subscribers_model import Base
-from src.database import engine
-from provider_backend.src.routers.subscribers_routes import router as project_router
+from models.admin_models import Base as admin_model
+from models.tenant_models import Base
+from database import engine
+from routers.admin_routes import router as admin_router
+from routers.tenant_routes import router as auth_router
 
 app = FastAPI()
 
+admin_model.metadata.create_all(bind=engine)
 Base.metadata.create_all(bind=engine)  # Create tables
 
 # Enregistrez le routeur des projets
-app.include_router(project_router)
+# app.include_router(subscriber_router)
+app.include_router(auth_router)
+app.include_router(admin_router)
