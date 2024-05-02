@@ -4,15 +4,28 @@ from datetime import datetime
 from pydantic import BaseModel, validator
     
 class CreateUserRequest(BaseModel):
-    first_name: str
-    last_name: str
-    password: str
+    # first_name: str
+    # last_name: str
     email: str
-    subdomain: str
+    # password: str
+    # subdomain: str
+
 
 class Token(BaseModel):
     access_token:str
     token_type:str
+    
+class TenantCredentialRequest(BaseModel):
+    first_name:str
+    last_name:str
+    subdomain:str
+    
+class VerifyOTP(BaseModel):
+    email:str
+    password:str
+    otp:str
+    
+    
 
     '''
     @validator('icon')

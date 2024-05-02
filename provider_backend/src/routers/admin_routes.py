@@ -11,18 +11,25 @@ import pyotp
 # 
 # typing and schemas
 from typing import Annotated
-from schemas.admins_schema import Status,Email
+from schemas.admins_schema import Status,Email,CustomOAuth2PasswordRequestForm
 # 
 # model and database imports
 from sqlalchemy.orm import Session
-from models.admin_models import Admin
-from models.tenant_models import Tenant
+from models.admin_models import AdminCredential,AdminInfos
+from models.tenant_models import TenantInfos,TenantCredential
+from models.otp_models import OTP
 from database import SessionLocal, engine
 # for secret keys and secret credentials
 import os
 from dotenv import load_dotenv
 # 
+from passlib.context import CryptContext
 
+from pydantic import BaseModel, Field
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+
+class CustomOAuth2PasswordRequestForm(OAuth2PasswordRequestForm):
+    otp: str = Field(..., description="One-time password (OTP)")
 
 load_dotenv()
 router = APIRouter(tags=["admin"])
@@ -31,11 +38,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 
 time_step = int(os.getenv("OTP_TIME_STEP"))
-expires_delta = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")))
+expires_delta = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 key = os.getenv("OTP_KEY")
 
-oauth2_bearer_admin = OAuth2PasswordBearer(tokenUrl='otp_validation',scheme_name="admin_validation")
+oauth2_bearer_admin = OAuth2PasswordBearer(tokenUrl='admin_validation',scheme_name="admin_validation")
 
 def get_db():
     db = SessionLocal()
@@ -48,15 +55,16 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 totp = pyotp.TOTP(key,interval=time_step)
 emailotp = emailotp()
+bcrypt_context = CryptContext(schemes=['bcrypt'],deprecated='auto')
 
-def authenticate_user(email:str,password:str,db):
-    user = db.query(Admin).filter(Admin.email == email).first()
-    if not user:
+def authenticate_admin(email:str,password:str,db):
+    admin = db.query(AdminCredential).filter(AdminCredential.email == email).first()
+    # Hash the provided password with the retrieved salt
+    if not admin:
         return False
-    if totp.verify(password) == False:
-        print("something wrong")
-        raise HTTPException(status_code=401,detail="Invalid otp")
-    return user
+    if not bcrypt_context.verify(password,admin.password):
+        return False
+    return admin
 
 async def get_current_user(token:Annotated[str,Depends(oauth2_bearer_admin)]):
     try:
@@ -77,30 +85,47 @@ def create_access_token(email:str,user_id:int, expires_delta:timedelta):
 
 user_dependency =Annotated[dict,Depends(get_current_user)]
 
-@router.post("/otp_validation/")
+# @router.post("/register_admin/")
+# async def verify_otp(db:db_dependency):
+#     create_admin = AdminCredential(
+#         password = bcrypt_context.hash("moonh3h3"),
+#         email = "ilhamptr007@gmail.com"
+#     )
+#     db.add(create_admin)
+#     db.commit()
+#     return {"message":"otp verified successfully"}
+    
+
+@router.post("/otp_sending/")
 async def otp(form_data: Annotated[OAuth2PasswordRequestForm,Depends()],db:db_dependency):
     # Verify the OTP entered by the user
-    admin = authenticate_user(form_data.username,form_data.password,db)
+    admin = authenticate_admin(form_data.username,form_data.password,db)
     if not admin:
         raise HTTPException(status_code=404,detail="Admin not available")
-    token = create_access_token(admin.email,admin.id, timedelta(expires_delta))
-    return {"access_token":token,"token_type":"bearer"}
-
-@router.post("/email/")
-async def email(email:Email,db:db_dependency):
-    admin = db.query(Admin).filter(Admin.email == email.email).first()
-    if not admin:
-        raise HTTPException(status_code=404,detail="Admin not available")
-    # Generate a new OTP
     otpcode = totp.now()
     print("New OTP generated:", otpcode)
 
     # Send the new OTP via email
-    response_from_emailotp = emailotp.sendOtp(email.email, otpcode)
+    response_from_emailotp = emailotp.sendOtp(form_data.username, otpcode)
     print(response_from_emailotp["message"])
-
+    create_otp = OTP(
+        owner = form_data.username,
+        otp = otpcode,
+        expiration=  datetime.now() + timedelta(minutes=4)
+    )
+    db.add(create_otp)
+    db.commit()
     return {"message": "OTP sent successfully"}
-
+    
+@router.post("/otp_verification/")
+async def otp_verification(form_data:Annotated[CustomOAuth2PasswordRequestForm,Depends()],db:db_dependency):
+    admin = db.query(AdminCredential).filter(AdminCredential.email == form_data.email).first()
+    if not admin:
+        raise HTTPException(status_code=404,detail="Admin not available")
+    # Generate a new OTP
+    # token = create_access_token(admin.email,admin.id, timedelta(minutes=expires_delta))
+    # return {"access_token":token,"token_type":"bearer"}
+    
 @router.get("/current_admin/",status_code=status.HTTP_200_OK, tags=["admin"])
 async def admin_data(admin:user_dependency,db:db_dependency):
     if admin is None:
@@ -111,8 +136,8 @@ async def admin_data(admin:user_dependency,db:db_dependency):
 async def subscribers_list(admin:user_dependency,db:db_dependency):
     if admin is None:
         raise HTTPException(status_code=401,detail="Authentication failed")
-    user = db.query(Tenant).all()
-    return {"user":user}
+    tenants = db.query(Tenant).all()
+    return {"tenants":tenants}
 
 @router.patch("/subscriber_status/",status_code=status.HTTP_200_OK, tags=["admin"])
 async def subscriber_status(admin:user_dependency,user:Status,db:db_dependency):
