@@ -9,11 +9,14 @@ class Email(BaseModel):
     
     
 class AdminRegistration(BaseModel):
-    emai:str
+    email:str
     password:str
-
-# Define your custom Pydantic model for form data
-class CustomOAuth2PasswordRequestForm(BaseModel):
-    username: str
-    password: str
-    otp: str  # Add OTP field
+    
+class OTPVerification(BaseModel):
+    email:str
+    otp:str
+    
+class CreateAdmin(BaseModel):
+    email:str
+    password:str
+    role_name:str

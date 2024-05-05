@@ -21,4 +21,22 @@ class AdminCredential(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
+    role_id = Column(Integer, ForeignKey('roles.id'))
+    role = relationship("AdminRole", back_populates="credentials")
     admin = relationship("AdminInfos", back_populates="credentials")
+    
+class AdminRole(Base):
+    __tablename__ = 'roles'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    credentials = relationship("AdminCredential", back_populates="role")
+    permissions = relationship("Permission", back_populates="role")
+
+class Permission(Base):
+    __tablename__ = 'permissions'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    role_id = Column(Integer, ForeignKey('roles.id'))
+    role = relationship('AdminRole', back_populates='permissions')
