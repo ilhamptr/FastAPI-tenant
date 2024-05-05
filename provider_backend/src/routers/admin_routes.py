@@ -185,8 +185,13 @@ async def delete_admin(admin_id:int,admin:user_dependency,db:db_dependency):
     if not "delete_admin" in permission_names:
         raise HTTPException(status_code=401,detail="You are unauthorized to make this request")
      # Also delete admin's entry from AdminCredential if exists
+    admin_info = db.query(AdminInfos).filter(AdminInfos.admin_id == admin_id).first()
+    if admin_info:
+        db.delete(admin_credential)
+        db.commit()
     admin_credential = db.query(AdminCredential).filter(AdminCredential.id == admin_id).first()
     if admin_credential:
         db.delete(admin_credential)
         db.commit()
+    return {"message":"admin has been deleted"}
     
