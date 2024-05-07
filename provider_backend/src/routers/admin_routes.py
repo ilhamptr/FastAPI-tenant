@@ -198,32 +198,31 @@ async def admin_list(admin: user_dependency, db: db_dependency):
         # If the permission is not found, raise an unauthorized exception
         raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
     
-    # Fetching all admin information from the database
-    admins = db.query(AdminInfos).all()
+    # Fetching all admin credential from the database
+    admins = db.query(AdminCredential).all()
     
     # Prepare response data
     admin_data = []
     
-    # Iterate through each admin and gather their information
-    for admin_info in admins:
+    # Iterate through each admin and gather their credential
+    for admin_credential in admins:
         admin_dict = {
-            "first_name": admin_info.first_name,
-            "last_name": admin_info.last_name,
-            "is_active": admin_info.is_active,
-            "credentials": []  # Initialize an empty list to store credentials
-        }
-        
-        # Fetch credentials for the admin
-        credential = admin_info.credentials
-        if credential:  # Check if credential exists
-            admin_dict["credentials"].append({
-                "admin_id": credential.id,
-                "email": credential.email
-            })
-        
-        # Append admin information to the response data
-        admin_data.append(admin_dict)
+        "admin_id": admin_credential.id,
+        "email": admin_credential.email,
+        "info": []  # Initialize an empty list to store info
+    }
+
+    # Fetch info for the admin
+    infos = admin_credential.admin  # Note: 'admin' relationship might return multiple objects
+    for info in infos:
+        admin_dict["info"].append({
+            "first_name": info.first_name,
+            "last_name": info.last_name,
+            "is_active": info.is_active
+        })
     
+    # Append admin information to the response data
+    admin_data.append(admin_dict)
     # Return the response containing admin data
     return {"admins": admin_data}
 
