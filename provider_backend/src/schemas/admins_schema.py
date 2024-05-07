@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from typing import Optional
 
 class Status(BaseModel):
     username:str
@@ -13,10 +13,15 @@ class AdminRegistration(BaseModel):
     password:str
     
 class OTPVerification(BaseModel):
-    email:str
     otp:str
     
 class CreateAdmin(BaseModel):
     email:str
     password:str
     role_name:str
+    
+class AdminInfosSchema(BaseModel):
+    first_name: str
+    last_name: str
+    is_active: Optional[bool]
+
