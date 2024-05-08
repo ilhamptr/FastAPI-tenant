@@ -529,7 +529,7 @@ async def update_admin(tenant_info: TenantInfosSchema, tenant_id: int, admin: us
     # Updating tenant information with the provided data
     tenant_data.first_name = tenant_info.first_name
     tenant_data.last_name = tenant_info.last_name
-    tenant_data.subdomain = tenant_info.subdomain
+    tenant_data.subdomain = f"{tenant_info.subdomain}.yoursite.com"
     tenant_data.is_active = tenant_info.is_active
     
     # Committing to save changes to the database
