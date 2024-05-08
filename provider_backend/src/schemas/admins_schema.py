@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class Status(BaseModel):
-    username:str
+    subdomain:str
     
 class Email(BaseModel):
     email:str

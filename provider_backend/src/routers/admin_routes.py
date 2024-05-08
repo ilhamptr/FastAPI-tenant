@@ -11,11 +11,12 @@ import pyotp
 # 
 # typing and schemas
 from typing import Annotated
-from schemas.admins_schema import OTPVerification,CreateAdmin,AdminInfosSchema
+from schemas.admins_schema import OTPVerification,CreateAdmin,AdminInfosSchema,Status
 # 
 # model and database imports
 from sqlalchemy.orm import Session
 from models.admin_models import AdminCredential,AdminInfos,Permission,AdminRole
+from models.tenant_models import TenantCredential,TenantInfos
 from models.otp_models import OTP
 from sqlalchemy import func
 from database import SessionLocal, engine
@@ -362,4 +363,82 @@ async def update_admin(admin_info: AdminInfosSchema, admin_id: int, admin: user_
     
     # Returning a success message
     return {"message": "Admin has been updated"}
+
+@router.get("/tenant_list/",status_code=status.HTTP_200_OK,tags=["admin"])
+async def subscribers_list(admin:user_dependency,db:db_dependency):
+   # Checking if admin is authenticated
+    if admin is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    # Fetching the role ID of the admin making the request
+    role_id = admin["role_id"]
+    
+    # Querying the database to get permissions associated with the admin's role
+    permission = db.query(Permission).filter(Permission.role_id == role_id).all()
+    
+    # Extracting permission names from the query result
+    permission_names = [permission.name for permission in permission]
+    
+    # Checking if the permission to update admin is granted to the admin
+    if not "read_tenant" in permission_names:
+        # If the permission is not found, raise an unauthorized exception
+        raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
+    # Fetching all tenant credential from the database
+    tenants = db.query(TenantCredential).all()
+    
+    # Prepare response data
+    tenant_data = []
+    
+    # Iterate through each tenant and gather their credential
+    for tenant_credential in tenants:
+        tenant_dict = {
+        "tenant_id": tenant_credential.id,
+        "email": tenant_credential.email,
+        "info": []  # Initialize an empty list to store info
+    }
+
+    # Fetch info for the tenatn
+    infos = tenant_credential.tenant  # Note: 'tenant' relationship might return multiple objects
+    for info in infos:
+        tenant_dict["info"].append({
+            "first_name": info.first_name,
+            "last_name": info.last_name,
+            "is_active": info.is_active
+        })
+    
+    # Append tenant information to the response data
+    tenant_data.append(tenant_dict)
+    # Return the response containing tenants data
+    return {"tenants": tenant_data}
+
+@router.patch("/tenant_status/{tenant_id}",status_code=status.HTTP_200_OK, tags=["admin"])
+async def subscriber_status(admin:user_dependency,tenant_id:str,db:db_dependency):
+    # Checking if admin is authenticated
+    if admin is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    # Fetching the role ID of the admin making the request
+    role_id = admin["role_id"]
+    
+    # Querying the database to get permissions associated with the admin's role
+    permission = db.query(Permission).filter(Permission.role_id == role_id).all()
+    
+    # Extracting permission names from the query result
+    permission_names = [permission.name for permission in permission]
+    
+    # Checking if the permission to update tenant status is granted to the admin
+    if not "update_tenant_status" in permission_names:
+        # If the permission is not found, raise an unauthorized exception
+        raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
+    # fetch the tenant from the database
+    user = db.query(TenantInfos).filter(TenantInfos.tenant_id == tenant_id).first()
+    if user:
+        if user.is_active:
+            user.is_active = False
+            db.commit()
+            return {"message":"subscriber has been deactivated"}
+        user.is_active = True
+        db.commit()
+        return {"message": "subscriber has been activated"}
+    raise HTTPException(status_code=404, detail="tenant is not found")
 
