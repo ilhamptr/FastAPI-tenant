@@ -459,7 +459,7 @@ async def update_admin(tenant_id: int, admin: user_dependency, db: db_dependency
     permission_names = [permission.name for permission in permission]
     
     # Checking if the permission to update admin is granted to the admin
-    if not "update_tenant_status" in permission_names:
+    if not "update_tenant" in permission_names:
         # If the permission is not found, raise an unauthorized exception
         raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
     
@@ -515,7 +515,7 @@ async def update_admin(tenant_info: TenantInfosSchema, tenant_id: int, admin: us
     permission_names = [permission.name for permission in permission]
     
     # Checking if the permission to update tenant is granted to the admin
-    if not "update_tenant_status" in permission_names:
+    if not "update_tenant" in permission_names:
         # If the permission is not found, raise an unauthorized exception
         raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
     
