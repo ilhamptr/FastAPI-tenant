@@ -11,7 +11,7 @@ import pyotp
 # 
 # typing and schemas
 from typing import Annotated
-from schemas.admins_schema import OTPVerification,CreateAdmin,AdminInfosSchema,Status
+from schemas.admins_schema import OTPVerification,CreateAdmin,AdminInfosSchema,TenantInfosSchema
 # 
 # model and database imports
 from sqlalchemy.orm import Session
@@ -442,3 +442,98 @@ async def subscriber_status(admin:user_dependency,tenant_id:str,db:db_dependency
         return {"message": "subscriber has been activated"}
     raise HTTPException(status_code=404, detail="tenant is not found")
 
+# Endpoint for fetching admin data before updating
+@router.get("/update_tenant/{tenant_id}/")
+async def update_admin(tenant_id: int, admin: user_dependency, db: db_dependency):
+    # Checking if admin is authenticated
+    if admin is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    # Fetching the role ID of the admin making the request
+    role_id = admin["role_id"]
+    
+    # Querying the database to get permissions associated with the admin's role
+    permission = db.query(Permission).filter(Permission.role_id == role_id).all()
+    
+    # Extracting permission names from the query result
+    permission_names = [permission.name for permission in permission]
+    
+    # Checking if the permission to update admin is granted to the admin
+    if not "update_tenant_status" in permission_names:
+        # If the permission is not found, raise an unauthorized exception
+        raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
+    
+    # Querying the database to check if the admin with the provided ID exists
+    tenant = db.query(TenantInfos).filter(TenantInfos.tenant_id == tenant_id).all()
+    
+    # If admin not found, raise a not found exception
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Prepare response data
+    tenant_data = []
+    
+    # Iterate through each admin and gather their information
+    for tenant_info in tenant:
+        tenant_dict = {
+            "first_name": tenant_info.first_name,
+            "last_name": tenant_info.last_name,
+            "subdomain":tenant_info.subdomain,
+            "registered_at":tenant_info.registered_at,
+            "is_active": tenant_info.is_active,
+            "credentials": []  # Initialize an empty list to store credentials
+        }
+        
+        # Fetch credentials for the admin
+        credential = tenant_info.credentials
+        if credential:  # Check if credential exists
+            tenant_dict["credentials"].append({
+                "tenant_id": credential.id,
+                "email": credential.email
+            })
+        
+        # Append admin information to the response data
+        tenant_data.append(tenant_dict)
+    
+    # Return the response containing admin data
+    return {"admin": tenant_data}
+
+# Endpoint for updating an admin
+@router.put("/update_tenant/{tenant_id}/", status_code=status.HTTP_200_OK, tags=["admin"])
+async def update_admin(tenant_info: TenantInfosSchema, tenant_id: int, admin: user_dependency, db: db_dependency):
+    # Checking if admin is authenticated
+    if admin is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    # Fetching the role ID of the admin making the request
+    role_id = admin["role_id"]
+    
+    # Querying the database to get permissions associated with the admin's role
+    permission = db.query(Permission).filter(Permission.role_id == role_id).all()
+    
+    # Extracting permission names from the query result
+    permission_names = [permission.name for permission in permission]
+    
+    # Checking if the permission to update tenant is granted to the admin
+    if not "update_tenant_status" in permission_names:
+        # If the permission is not found, raise an unauthorized exception
+        raise HTTPException(status_code=401, detail="You are unauthorized to make this request")
+    
+    # Querying the database to get the tenant with the provided ID
+    tenant_data = db.query(TenantInfos).filter(TenantInfos.tenant_id == tenant_id).first()
+    
+    # If tenant not found, raise a not found exception
+    if not tenant_data:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # Updating tenant information with the provided data
+    tenant_data.first_name = tenant_info.first_name
+    tenant_data.last_name = tenant_info.last_name
+    tenant_data.subdomain = tenant_info.subdomain
+    tenant_data.is_active = tenant_info.is_active
+    
+    # Committing to save changes to the database
+    db.commit()
+    
+    # Returning a success message
+    return {"message": "Tenant data has been updated"}

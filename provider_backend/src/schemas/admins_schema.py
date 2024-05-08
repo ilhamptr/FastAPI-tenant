@@ -24,4 +24,10 @@ class AdminInfosSchema(BaseModel):
     first_name: str
     last_name: str
     is_active: Optional[bool]
+    
+class TenantInfosSchema(BaseModel):
+    first_name: str
+    last_name: str
+    subdomain:str
+    is_active: Optional[bool]
 
